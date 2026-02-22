@@ -1,8 +1,8 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
-from services.openrouter_service import ask_ai
-from database.db import SessionLocal
-from models.resume import Resume
+from backend.services.openrouter_service import ask_ai
+from backend.database.db import SessionLocal
+from backend.models.resume import Resume
 
 router = APIRouter(prefix="/chat")
 
