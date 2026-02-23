@@ -1,61 +1,48 @@
 import os
 import requests
-from pathlib import Path
 from dotenv import load_dotenv
 
-env_path = Path(__file__).resolve().parent.parent / ".env"
-load_dotenv(dotenv_path=env_path)
+load_dotenv()
 
-API_KEY = os.getenv("OPENROUTER_API_KEY")
-print("LOADED API KEY:", API_KEY)
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
+async def ask_ai(question: str):
 
-def ask_ai(resume_data, question):
+    url = "https://openrouter.ai/api/v1/chat/completions"
 
-    if not API_KEY:
-        return "API KEY NOT LOADED"
+    headers = {
+        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+        "Content-Type": "application/json",
+    }
 
-    prompt = f"""
-You are Amit Kumar's professional AI assistant.
+    data = {
+        "model": "mistralai/mistral-7b-instruct",
+        "messages": [
+            {
+                "role": "system",
+                "content": """
+You are an AI assistant answering questions about Amit Kumar's resume.
 
-Rules:
-- Answer only from the resume provided.
-- If the answer is not present in the resume, reply:
-  "This information is not available in Amit's resume."
-- Keep answers short and professional.
+Skills:
+Frontend: React, TypeScript
+Backend: Python, FastAPI, Laravel
+Database: MongoDB
 
-Resume:
-{resume_data}
-
-Question:
-{question}
+Answer only based on this information.
+If question is unrelated, say:
+"This information is not available in Amit's resume."
 """
+            },
+            {
+                "role": "user",
+                "content": question
+            }
+        ]
+    }
 
-    response = requests.post(
-        url="https://openrouter.ai/api/v1/chat/completions",
-        headers={
-            "Authorization": f"Bearer {API_KEY}",
-            "Content-Type": "application/json",
-            "HTTP-Referer": "http://localhost",
-            "X-Title": "AI Portfolio"
-        },
-        json={
-            "model": "mistralai/mistral-7b-instruct",
-            "messages": [
-                {"role": "user", "content": prompt}
-            ]
-        }
-    )
-
-    print("STATUS CODE:", response.status_code)
-    print("RAW RESPONSE:", response.text)
+    response = requests.post(url, headers=headers, json=data)
 
     if response.status_code != 200:
         return f"OpenRouter Error: {response.text}"
 
-    data = response.json()
-
-    if "choices" not in data:
-        return f"Unexpected response format: {data}"
-
-    return data["choices"][0]["message"]["content"]
+    return response.json()["choices"][0]["message"]["content"]

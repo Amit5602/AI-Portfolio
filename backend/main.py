@@ -1,14 +1,20 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from backend.routes.chat import router as chat_router
-from backend.database.db import engine
-from backend.models.resume import Base
 
 app = FastAPI()
+
+# CORS (frontend ke liye zaroori)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(chat_router)
 
 @app.get("/")
 def root():
     return {"message": "AI Portfolio Backend Running 🚀"}
-
-Base.metadata.create_all(bind=engine)
