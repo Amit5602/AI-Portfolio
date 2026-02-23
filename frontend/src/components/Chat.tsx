@@ -1,14 +1,16 @@
 import { useState, useRef, useEffect } from "react";
 import axios from "axios";
 
+type ChatMessage = {
+  role: "user" | "ai";
+  text: string;
+};
+
 function Chat() {
   const [isOpen, setIsOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-
-  const [chatHistory, setChatHistory] = useState<
-    { role: "user" | "ai"; text: string }[]
-  >([]);
+  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
 
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
@@ -19,31 +21,41 @@ function Chat() {
   const sendMessage = async () => {
     if (!message.trim()) return;
 
-    const userText = message;
+    const userText = message.trim();
     setMessage("");
 
-    setChatHistory((prev) => [
-      ...prev,
+    const updatedHistory: ChatMessage[] = [
+      ...chatHistory,
       { role: "user", text: userText },
-    ]);
+    ];
 
+    setChatHistory(updatedHistory);
     setIsLoading(true);
 
     try {
       const response = await axios.post(
-  `${import.meta.env.VITE_API_URL}/chat/`,
-  {
-    question: userText,
-  }
-);
+        `${import.meta.env.VITE_API_URL}/chat/`,
+        {
+          question: userText,
+          history: updatedHistory.map((chat) => ({
+            role: chat.role === "ai" ? "assistant" : "user",
+            content: chat.text,
+          })),
+        }
+      );
 
-      setChatHistory((prev) => [
-        ...prev,
-        { role: "ai", text: response.data.response },
+      const aiReply =
+        response?.data?.response || "AI did not return a response.";
+
+      setChatHistory([
+        ...updatedHistory,
+        { role: "ai", text: aiReply },
       ]);
     } catch (error) {
-      setChatHistory((prev) => [
-        ...prev,
+      console.error("Chat Error:", error);
+
+      setChatHistory([
+        ...updatedHistory,
         { role: "ai", text: "Error connecting to AI." },
       ]);
     }
@@ -56,7 +68,7 @@ function Chat() {
       {/* Floating Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-6 right-6 bg-blue-600 px-5 py-3 rounded-full shadow-lg hover:bg-blue-700 transition hover:scale-105 active:scale-95"
+        className="fixed bottom-6 right-6 bg-blue-600 px-5 py-3 rounded-full shadow-lg hover:bg-blue-700 transition"
       >
         AI Chat
       </button>
@@ -64,6 +76,7 @@ function Chat() {
       {/* Chat Popup */}
       {isOpen && (
         <div className="fixed bottom-20 right-6 w-96 backdrop-blur-lg bg-white/10 border border-white/20 text-white rounded-2xl shadow-2xl flex flex-col max-h-[70vh]">
+
           <div className="p-4 border-b border-white/20 font-bold">
             AI Assistant
           </div>
@@ -133,6 +146,7 @@ function Chat() {
               Send
             </button>
           </div>
+
         </div>
       )}
     </>
